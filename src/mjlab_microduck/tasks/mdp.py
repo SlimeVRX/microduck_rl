@@ -1,7 +1,7 @@
 """MDP functions for microduck tasks"""
 
 import math
-from dataclasses import dataclass as _dataclass
+from dataclasses import dataclass as _dataclass, field as _field
 
 import numpy as np
 import torch
@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING, Optional
 import mujoco
 
 from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
+from mjlab.envs.mdp.actions.actions import (
+    JointPositionAction,
+    JointPositionActionCfg,
+)
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.managers.reward_manager import RewardManager as _RewardManager
 from mjlab.entity import Entity
@@ -18,7 +22,76 @@ from mjlab.managers.command_manager import CommandTerm
 from mjlab.managers import CommandTermCfg
 from mjlab.managers.event_manager import requires_model_fields
 from mjlab.utils.lab_api.math import matrix_from_quat, wrap_to_pi, quat_apply, quat_from_angle_axis
+from mjlab.utils.lab_api.string import resolve_matching_names_values
 from rsl_rl.algorithms.ppo import PPO as _PPO
+
+
+def resolve_ema_alphas(
+    target_names, alpha_map: dict[str, float], default_alpha: float
+) -> list[float]:
+    """Resolve per-target runtime EMA alphas; unmatched targets use the default.
+
+    This is the runtime-matched target EMA. The actor's ``last_action``
+    observation must remain the raw policy output, not the filtered target.
+    """
+    alphas = [default_alpha] * len(target_names)
+    if alpha_map:
+        indices, _, values = resolve_matching_names_values(alpha_map, target_names)
+        for index, value in zip(indices, values):
+            alphas[index] = value
+    if any(not 0 < alpha <= 1 for alpha in alphas):
+        raise ValueError("EMA alpha must satisfy 0 < alpha <= 1")
+    return alphas
+
+
+def ema_target_blend(
+    target: torch.Tensor, filtered: torch.Tensor, alpha: torch.Tensor
+) -> torch.Tensor:
+    return alpha * target + (1.0 - alpha) * filtered
+
+
+@_dataclass(kw_only=True)
+class EmaJointPositionActionCfg(JointPositionActionCfg):
+    """Configuration for runtime-matched EMA joint-position targets."""
+
+    alpha_map: dict[str, float] = _field(default_factory=dict)
+    default_alpha: float = 1.0
+
+    def build(self, env):
+        return EmaJointPositionAction(self, env)
+
+
+class EmaJointPositionAction(JointPositionAction):
+    """Runtime-matched EMA action; ``last_action`` remains the raw policy output."""
+
+    def __init__(self, cfg: EmaJointPositionActionCfg, env):
+        super().__init__(cfg, env)
+        self._alpha = torch.tensor(
+            resolve_ema_alphas(self._target_names, cfg.alpha_map, cfg.default_alpha),
+            device=self.device,
+        ).reshape(1, -1)
+        self._filtered = self._entity.data.default_joint_pos[
+            :, self._target_ids
+        ].clone()
+
+    def apply_actions(self) -> None:
+        target = ema_target_blend(
+            self._processed_actions, self._filtered, self._alpha
+        )
+        self._filtered[:] = target
+        encoder_bias = self._entity.data.encoder_bias[:, self._target_ids]
+        self._entity.set_joint_position_target(
+            target - encoder_bias, joint_ids=self._target_ids
+        )
+
+    def reset(self, env_ids=None) -> None:
+        super().reset(env_ids)
+        default_target = self._entity.data.default_joint_pos[:, self._target_ids]
+        if env_ids is None:
+            self._filtered[:] = default_target
+        else:
+            self._filtered[env_ids] = default_target[env_ids]
+
 
 # ---------------------------------------------------------------------------
 # Patch 1: RewardManager.compute — sanitize NaN rewards before they enter the
@@ -74,12 +147,10 @@ print("[mdp] Patches 1-2 active: NaN-safe reward/advantage")
 # exported metadata so policies stay consistent with the 14-dim action space.
 # ---------------------------------------------------------------------------
 from mjlab.rl import exporter_utils as _exporter_utils  # noqa: E402
-from mjlab.envs.mdp.actions import JointPositionAction as _JointAction  # noqa: E402
-
 def _get_base_metadata_no_passive(env, run_path):
     robot = env.scene["robot"]
     joint_action = env.action_manager.get_term("joint_pos")
-    assert isinstance(joint_action, _JointAction)
+    assert isinstance(joint_action, JointPositionAction)
     full_names = list(robot.joint_names)
     keep_idx = [i for i, n in enumerate(full_names) if not n.startswith("passive_")]
     joint_names = [full_names[i] for i in keep_idx]
@@ -3545,6 +3616,7 @@ def velocity_command_ranges_curriculum(
     update_lin_vel_y: bool = True,
     update_ang_vel_z: bool = True,
     forward_only: bool = False,
+    lin_vel_y_scale: float = 1.0,
 ) -> torch.Tensor:
     """Update velocity command ranges based on training progress.
 
@@ -3591,7 +3663,10 @@ def velocity_command_ranges_curriculum(
     else:
         cfg.ranges.lin_vel_x = (-current_lin_vel, current_lin_vel)
     if update_lin_vel_y:
-        cfg.ranges.lin_vel_y = (-current_lin_vel, current_lin_vel)
+        cfg.ranges.lin_vel_y = (
+            -current_lin_vel * lin_vel_y_scale,
+            current_lin_vel * lin_vel_y_scale,
+        )
     if update_ang_vel_z:
         cfg.ranges.ang_vel_z = (-current_ang_vel, current_ang_vel)
 
