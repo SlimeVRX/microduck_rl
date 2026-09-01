@@ -94,6 +94,17 @@ def _part_body(
         "geom",
         {
             "type": "mesh",
+            "class": "visual",
+            "mesh": mesh_name,
+            "pos": "0 0 0",
+            "rgba": E5_MECHANISM_RGBA,
+        },
+    )
+    ET.SubElement(
+        body,
+        "geom",
+        {
+            "type": "mesh",
             "class": "self_collision_only",
             "name": f"{name}_geom",
             "mesh": mesh_name,
@@ -209,6 +220,17 @@ def _add_new_parts(root: ET.Element, side: str, variant: str, foot: ET.Element) 
     if variant == "remote_sole":
         sole = ET.SubElement(foot, "body", {"name": f"e5_sole_{side}", "pos": "0 0 0"})
         sole.append(_inertial(f"e5_sole_{side}"))
+        ET.SubElement(
+            sole,
+            "geom",
+            {
+                "type": "mesh",
+                "class": "visual",
+                "mesh": f"e5_sole_{side}",
+                "material": f"sole_{side}_material",
+                "pos": "0 0 0",
+            },
+        )
         ET.SubElement(
             sole,
             "geom",

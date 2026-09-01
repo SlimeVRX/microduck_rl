@@ -117,20 +117,24 @@
                   <site group="3" name="left_foot" pos="-0 -0.0238146 -0.0140852" quat="0 0 0.707107 0.707107" />
                   <body name="e5_footplate_left" pos="0 0 0">
                     <inertial pos="-0.000174363866 -0.00111253738 -0.000583732978" mass="0.00518544011" fullinertia="1.31826868e-06 3.0913794e-06 1.78132309e-06 -2.51641942e-09 -1.42597105e-08 -8.55582588e-09" />
+                    <geom type="mesh" class="visual" mesh="e5_footplate_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                     <geom type="mesh" class="self_collision_only" name="e5_footplate_left_geom" mesh="e5_footplate_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   </body>
                   <body name="e5_pushrod_left" pos="0 0 0">
                     <inertial pos="0.00230742089 0.0128954486 -0.0131313654" mass="0.000423635979" fullinertia="4.51125535e-08 1.74393424e-08 5.45332211e-08 -2.30987525e-08 -6.92962586e-09 -1.22287515e-08" />
+                    <geom type="mesh" class="visual" mesh="e5_pushrod_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                     <geom type="mesh" class="self_collision_only" name="e5_pushrod_left_geom" mesh="e5_pushrod_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   </body>
                 </body>
                 <body name="e5_yoke_left" pos="0 0 0">
                   <inertial pos="-8.65777316e-19 -0.00376797908 -0.00240905647" mass="0.00276434736" fullinertia="3.73004874e-07 5.75937007e-07 5.26566091e-07 -2.89117385e-23 -1.98769819e-23 2.50927395e-08" />
+                  <geom type="mesh" class="visual" mesh="e5_yoke_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   <geom type="mesh" class="self_collision_only" name="e5_yoke_left_geom" mesh="e5_yoke_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                 </body>
               </body>
               <body name="e5_cradle_left" pos="0.012 0.012 -0.018">
                 <inertial pos="8.05958621e-19 -1.61191724e-19 2.41787586e-19" mass="0.00212108482" fullinertia="4.39486222e-07 7.04371265e-07 5.01995308e-07 8.547533e-24 8.547533e-24 1.99550255e-24" />
+                <geom type="mesh" class="visual" mesh="e5_cradle_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                 <geom type="mesh" class="self_collision_only" name="e5_cradle_left_geom" mesh="e5_cradle_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
               </body>
               <body name="e5_roll_servo_left" pos="0.012 0.012 -0.018">
@@ -227,20 +231,24 @@
                   <site group="3" name="right_foot" pos="0 -0.0238146 -0.0140852" quat="0.707107 -0.707107 0 0" />
                   <body name="e5_footplate_right" pos="0 0 0">
                     <inertial pos="0.000174363866 -0.00111253738 -0.000583732978" mass="0.00518544011" fullinertia="1.31826868e-06 3.0913794e-06 1.78132309e-06 2.51641942e-09 1.42597105e-08 -8.55582588e-09" />
+                    <geom type="mesh" class="visual" mesh="e5_footplate_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                     <geom type="mesh" class="self_collision_only" name="e5_footplate_right_geom" mesh="e5_footplate_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   </body>
                   <body name="e5_pushrod_right" pos="0 0 0">
                     <inertial pos="0.00795472016 0.0126630863 -0.0132010741" mass="0.000392776736" fullinertia="4.16788361e-08 6.0843892e-09 4.03403845e-08 -8.7835886e-09 -2.63507662e-09 -1.12931854e-08" />
+                    <geom type="mesh" class="visual" mesh="e5_pushrod_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                     <geom type="mesh" class="self_collision_only" name="e5_pushrod_right_geom" mesh="e5_pushrod_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   </body>
                 </body>
                 <body name="e5_yoke_right" pos="0 0 0">
                   <inertial pos="-8.65777316e-19 -0.00376797908 -0.00240905647" mass="0.00276434736" fullinertia="3.73004874e-07 5.75937007e-07 5.26566091e-07 -2.89117385e-23 -1.98769819e-23 2.50927395e-08" />
+                  <geom type="mesh" class="visual" mesh="e5_yoke_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   <geom type="mesh" class="self_collision_only" name="e5_yoke_right_geom" mesh="e5_yoke_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                 </body>
               </body>
               <body name="e5_cradle_right" pos="-0.012 0.012 -0.018">
                 <inertial pos="8.05958621e-19 -1.61191724e-19 2.41787586e-19" mass="0.00212108482" fullinertia="4.39486222e-07 7.04371265e-07 5.01995308e-07 8.547533e-24 8.547533e-24 1.99550255e-24" />
+                <geom type="mesh" class="visual" mesh="e5_cradle_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                 <geom type="mesh" class="self_collision_only" name="e5_cradle_right_geom" mesh="e5_cradle_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
               </body>
               <body name="e5_roll_servo_right" pos="-0.012 0.012 -0.018">
