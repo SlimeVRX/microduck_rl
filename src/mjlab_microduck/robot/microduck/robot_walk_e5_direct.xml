@@ -116,7 +116,7 @@
                   <geom type="mesh" class="visual" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" mesh="ankle_left" material="ankle_left_material" />
                   <site group="3" name="left_foot" pos="-0 -0.0238146 -0.0140852" quat="0 0 0.707107 0.707107" />
                   <body name="e5_footplate_left" pos="0 0 0">
-                    <inertial pos="-0.000174363866 -0.00111253738 -0.000583732978" mass="0.00518544011" fullinertia="1.31826868e-06 3.0913794e-06 1.78132309e-06 -2.51641942e-09 -1.42597105e-08 -8.55582588e-09" />
+                    <inertial pos="-4.67213517e-05 -0.00214642875 -0.000149749883" mass="0.00680952974" fullinertia="6.61297764e-07 1.54571318e-06 9.70494784e-07 -5.04670951e-10 -4.56175957e-09 -1.71579674e-09" />
                     <geom type="mesh" class="visual" mesh="e5_footplate_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                     <geom type="mesh" class="self_collision_only" name="e5_footplate_left_geom" mesh="e5_footplate_left" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   </body>
@@ -220,7 +220,7 @@
                   <geom type="mesh" class="visual" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" mesh="foot_right" material="foot_right_material" />
                   <site group="3" name="right_foot" pos="0 -0.0238146 -0.0140852" quat="0.707107 -0.707107 0 0" />
                   <body name="e5_footplate_right" pos="0 0 0">
-                    <inertial pos="0.000174363866 -0.00111253738 -0.000583732978" mass="0.00518544011" fullinertia="1.31826868e-06 3.0913794e-06 1.78132309e-06 2.51641942e-09 1.42597105e-08 -8.55582588e-09" />
+                    <inertial pos="4.6721349e-05 -0.00214642866 -0.000149748526" mass="0.00680952992" fullinertia="6.61297927e-07 1.54571342e-06 9.70494857e-07 5.04670956e-10 4.56175976e-09 -1.71580947e-09" />
                     <geom type="mesh" class="visual" mesh="e5_footplate_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                     <geom type="mesh" class="self_collision_only" name="e5_footplate_right_geom" mesh="e5_footplate_right" pos="0 0 0" rgba="0.95 0.45 0.1 1" />
                   </body>

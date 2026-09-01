@@ -37,6 +37,8 @@ SOLE_CORNER_RADIUS_MM = 6.0
 ROCKER_LENGTH_MM = 8.0
 ROCKER_ANGLE_DEG = 15.0
 WALL_MM = 2.0
+SOLE_WALL_MM = 1.5
+FOOTPLATE_WALL_MM = 1.5
 SERVO_OFFSET_LOCAL_MM = {
     # First zero-new-contact candidate from the compiled original-range sweep:
     # along-shank=12 mm, inboard=-18 mm, rear=12 mm.
@@ -198,6 +200,48 @@ def _rounded_ring(
     return trimesh.Trimesh(vertices=vertices, faces=faces, process=True)
 
 
+def _rounded_plate(
+    width: float,
+    depth: float,
+    radius: float,
+    thickness: float,
+    bottom_y: float | np.ndarray,
+    center_x: float,
+    center_z: float,
+) -> trimesh.Trimesh:
+    """Make a solid rounded plate with a possibly rockered lower surface."""
+    outline = _rounded_rectangle_points(width, depth, radius)
+    if np.isscalar(bottom_y):
+        bottom = np.full(len(outline), float(bottom_y))
+    else:
+        bottom = np.asarray(bottom_y, dtype=float)
+    top = bottom + thickness
+    outer_bottom = np.column_stack(
+        [outline[:, 0] + center_x, bottom, outline[:, 1] + center_z]
+    )
+    outer_top = np.column_stack(
+        [outline[:, 0] + center_x, top, outline[:, 1] + center_z]
+    )
+    bottom_center = np.array([center_x, float(bottom.mean()), center_z])
+    top_center = np.array([center_x, float(top.mean()), center_z])
+    vertices = np.vstack([outer_bottom, outer_top, bottom_center, top_center])
+    n = len(outline)
+    bottom_center_id = 2 * n
+    top_center_id = bottom_center_id + 1
+    faces: list[tuple[int, int, int]] = []
+    for i in range(n):
+        j = (i + 1) % n
+        faces.extend(
+            [
+                (i, j, n + j),
+                (i, n + j, n + i),
+                (bottom_center_id, j, i),
+                (top_center_id, n + i, n + j),
+            ]
+        )
+    return trimesh.Trimesh(vertices=vertices, faces=faces, process=True)
+
+
 def _sole_mesh(center_x: float, top_y: float, center_z: float) -> trimesh.Trimesh:
     rise = math.tan(math.radians(ROCKER_ANGLE_DEG))
     outline = _rounded_rectangle_points(
@@ -208,14 +252,14 @@ def _sole_mesh(center_x: float, top_y: float, center_z: float) -> trimesh.Trimes
     for x, _ in outline:
         distance = max(0.0, abs(x) - (SOLE_FWD_MM / 2.0 - ROCKER_LENGTH_MM))
         profile.append(bottom_y + distance * rise)
+    profile = np.asarray(profile)
     parts = [
-        _rounded_ring(
+        _rounded_plate(
             SOLE_FWD_MM,
             SOLE_LATERAL_MM,
             SOLE_CORNER_RADIUS_MM,
-            WALL_MM,
-            top_y,
-            top_y - WALL_MM,
+            SOLE_WALL_MM,
+            profile,
             center_x,
             center_z,
         ),
@@ -223,40 +267,29 @@ def _sole_mesh(center_x: float, top_y: float, center_z: float) -> trimesh.Trimes
             SOLE_FWD_MM,
             SOLE_LATERAL_MM,
             SOLE_CORNER_RADIUS_MM,
-            WALL_MM,
-            np.asarray(profile) + 2.0,
-            np.asarray(profile),
+            SOLE_WALL_MM,
+            top_y,
+            profile + SOLE_WALL_MM,
             center_x,
             center_z,
         ),
     ]
-    for x in (-SOLE_FWD_MM / 2.0 + WALL_MM, 0.0, SOLE_FWD_MM / 2.0 - WALL_MM):
-        parts.append(
-            _box(
-                (WALL_MM, WALL_MM, SOLE_LATERAL_MM - 2.0 * WALL_MM),
-                (center_x + x, top_y - 1.0, center_z),
-            )
-        )
-    for z in (-SOLE_LATERAL_MM / 2.0 + WALL_MM, 0.0, SOLE_LATERAL_MM / 2.0 - WALL_MM):
-        parts.append(
-            _box(
-                (SOLE_FWD_MM - 2.0 * WALL_MM, WALL_MM, WALL_MM),
-                (center_x, top_y - 1.0, center_z + z),
-            )
-        )
-    for x, z in itertools.product(
-        (-SOLE_FWD_MM / 2.0 + WALL_MM, SOLE_FWD_MM / 2.0 - WALL_MM),
-        (-SOLE_LATERAL_MM / 2.0 + WALL_MM, SOLE_LATERAL_MM / 2.0 - WALL_MM),
-    ):
+    rib_height = 3.0
+    for x in (-14.0, 14.0):
         distance = max(0.0, abs(x) - (SOLE_FWD_MM / 2.0 - ROCKER_LENGTH_MM))
+        rib_bottom = bottom_y + distance * rise + SOLE_WALL_MM
         parts.append(
-            _bar(
-                np.array([center_x + x, top_y - 2.0, center_z + z]),
-                np.array(
-                    [center_x + x, bottom_y + distance * rise + 2.0, center_z + z]
-                ),
+            _box(
+                (SOLE_WALL_MM, rib_height, 32.0),
+                (center_x + x, rib_bottom + rib_height / 2.0, center_z),
             )
         )
+    parts.append(
+        _box(
+            (30.0, rib_height, SOLE_WALL_MM),
+            (center_x, bottom_y + SOLE_WALL_MM + rib_height / 2.0, center_z),
+        )
+    )
     return _union(parts)
 
 
@@ -381,22 +414,49 @@ def yoke(side: str) -> trimesh.Trimesh:
 
 def footplate(side: str, center: np.ndarray, top_y: float) -> trimesh.Trimesh:
     fwd_sign = -1.0 if side == "left" else 1.0
+    mount_face = _box(
+        (30.0, FOOTPLATE_WALL_MM, 24.0),
+        (center[0], top_y - FOOTPLATE_WALL_MM / 2.0, center[2]),
+    )
     plate = [
-        _box((54.0, WALL_MM, WALL_MM), (center[0], top_y - 1.0, center[2] - 19.5)),
-        _box((54.0, WALL_MM, WALL_MM), (center[0], top_y - 1.0, center[2] + 19.5)),
-        _box((WALL_MM, WALL_MM, 41.0), (center[0] - 26.0, top_y - 1.0, center[2])),
-        _box((WALL_MM, WALL_MM, 41.0), (center[0] + 26.0, top_y - 1.0, center[2])),
-        _box((WALL_MM, WALL_MM, 41.0), (center[0], top_y - 1.0, center[2])),
+        _box(
+            (54.0, FOOTPLATE_WALL_MM, FOOTPLATE_WALL_MM),
+            (center[0], top_y - FOOTPLATE_WALL_MM / 2.0, center[2] - 19.5),
+        ),
+        _box(
+            (54.0, FOOTPLATE_WALL_MM, FOOTPLATE_WALL_MM),
+            (center[0], top_y - FOOTPLATE_WALL_MM / 2.0, center[2] + 19.5),
+        ),
+        _box(
+            (FOOTPLATE_WALL_MM, FOOTPLATE_WALL_MM, 41.0),
+            (center[0] - 26.0, top_y - FOOTPLATE_WALL_MM / 2.0, center[2]),
+        ),
+        _box(
+            (FOOTPLATE_WALL_MM, FOOTPLATE_WALL_MM, 41.0),
+            (center[0] + 26.0, top_y - FOOTPLATE_WALL_MM / 2.0, center[2]),
+        ),
+        _box(
+            (FOOTPLATE_WALL_MM, FOOTPLATE_WALL_MM, 41.0),
+            (center[0], top_y - FOOTPLATE_WALL_MM / 2.0, center[2]),
+        ),
+    ]
+    rib_y = top_y - FOOTPLATE_WALL_MM - 4.0
+    ribs = [
+        _box(
+            (FOOTPLATE_WALL_MM, 8.0, 18.0),
+            (center[0] + x, rib_y, center[2]),
+        )
+        for x in (-10.0, 0.0, 10.0)
     ]
     arm = _box(
-        (WALL_MM, 8.0, WALL_MM),
+        (FOOTPLATE_WALL_MM, 8.0, FOOTPLATE_WALL_MM),
         (
             center[0] + fwd_sign * LEVER_ARM_MM,
             top_y - 4.0,
             center[2] - PIVOT_INBOARD_MM - LEVER_ARM_MM,
         ),
     )
-    return _union([*plate, arm])
+    return _union([mount_face, *plate, *ribs, arm])
 
 
 def cradle() -> trimesh.Trimesh:
