@@ -1,5 +1,11 @@
 # E4 — Phương án phần cứng: mỗi thay đổi đổi được bao nhiêu
 
+> **Đính chính (đọc trước):** dòng "+ ankle roll" dưới đây là **hình học tĩnh**
+> với 20 g đại diện và giả định đế giữ phẳng — không phải mô phỏng. Mô phỏng
+> thật với robot 16 servo (khớp + actuator + tiếp xúc) cho kết quả khác hẳn:
+> khả năng dịch ngang tăng ~16×, nhưng khả năng chịu đẩy khi đứng chỉ +5%. Xem
+> `docs/e4b-ankle-roll-simulation.md` — nó thay thế con số +81% ở §"Sáu kết luận".
+
 Không cần GPU, không cần train. Mọi con số dưới đây tính từ chính MJCF đang
 dùng (`robot/microduck/scene_walk.xml`, keyframe `STAND`) cộng thông số servo
 BAM `xl330/m6`, bằng script tái lập được:
