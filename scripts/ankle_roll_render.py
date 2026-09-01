@@ -16,6 +16,7 @@ Two kinds of frame per model:
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -36,10 +37,14 @@ SCENES = (
 
 
 def camera(
-    distance: float, azimuth: float, elevation: float, height: float
+    distance: float,
+    azimuth: float,
+    elevation: float,
+    height: float,
+    lookat: tuple[float, float, float] | None = None,
 ) -> mujoco.MjvCamera:
     cam = mujoco.MjvCamera()
-    cam.lookat[:] = (0.0, 0.0, height)
+    cam.lookat[:] = lookat if lookat is not None else (0.0, 0.0, height)
     cam.distance = distance
     cam.azimuth = azimuth
     cam.elevation = elevation
@@ -52,9 +57,33 @@ def shoot(robot: Robot, cam: mujoco.MjvCamera, width: int, height: int):
         return renderer.render()
 
 
+def render_remote_left_closeups(
+    robot: Robot, out: Path, width: int, height: int
+) -> None:
+    left_mechanism = (-0.018, 0.052, 0.050)
+    side = camera(0.12, -90.0, -8.0, 0.050, left_mechanism)
+    front = camera(0.12, -45.0, -8.0, 0.050, left_mechanism)
+    for pose_name, roll in (("stand", 0.0), ("roll20", math.radians(20.0))):
+        robot.reset_stand()
+        if roll:
+            robot.data.qpos[robot.qpos_of["left_ankle_roll"]] = roll
+        robot.data.qvel[:] = 0.0
+        mujoco.mj_forward(robot.model, robot.data)
+        prefix = f"{robot.name}_left_mechanism"
+        mediapy.write_image(
+            out / f"{prefix}_side_{pose_name}.png",
+            shoot(robot, side, width, height),
+        )
+        mediapy.write_image(
+            out / f"{prefix}_front_{pose_name}.png",
+            shoot(robot, front, width, height),
+        )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default=str(ROOT / "docs/img"))
+    ap.add_argument("--scenes", nargs="*", default=None)
     ap.add_argument("--bias-step", type=float, default=0.02)
     ap.add_argument("--bias-limit", type=float, default=1.2)
     ap.add_argument("--width", type=int, default=900)
@@ -68,7 +97,7 @@ def main() -> int:
     front = camera(0.5, 0.0, -10.0, 0.09)
     ankle = camera(0.15, 8.0, -6.0, 0.025)
 
-    for scene in SCENES:
+    for scene in args.scenes or SCENES:
         robot = Robot(ROBOT_DIR / scene)
         robot.model.vis.global_.offwidth = args.width
         robot.model.vis.global_.offheight = args.height
@@ -110,6 +139,8 @@ def main() -> int:
         if best[2] is not None:
             mediapy.write_image(out / f"{robot.name}_lean.png", best[2])
             mediapy.write_image(out / f"{robot.name}_lean_ankle.png", best[3])
+        if scene == "scene_walk_e5_remote.xml":
+            render_remote_left_closeups(robot, out, args.width, args.height)
         print(
             f"{robot.name}: best flat-sole CoM travel {1000 * best[0]:.1f} mm "
             f"at bias {best[1]:.2f} rad"
