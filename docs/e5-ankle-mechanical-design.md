@@ -21,41 +21,49 @@ uv run python scripts/ankle_roll_sim.py ...  # T0-T3, không sửa protocol
 | Chi tiết in | Thể tích | Khối lượng PLA |
 |---|---:|---:|
 | `e5_yoke` (yoke chữ thập, mang trục roll) | 2.23 cm³ | **2.76 g** |
-| `e5_footplate` (tấm mang đế + tay đòn 5 mm) | 0.96 cm³ | **1.19 g** |
+| `e5_footplate` (tấm mang đế + tay đòn 5 mm, mặt bắt vít liền) | 2.27 cm³ | **2.81 g** |
 | `e5_cradle` (giá servo trên cẳng chân) | 1.71 cm³ | **2.12 g** |
 | `e5_pushrod` (thanh đẩy Ø3 + rotuyn) | 0.34 cm³ | **0.42 g** |
-| `e5_sole` (đế mới 51 × 59, có rocker) | 2.94 cm³ | **3.65 g** |
+| `e5_sole` (đế mới 51 × 59 có rocker, khay hở nắp, đáy liền 1.5 mm) | 7.99 cm³ | **9.90 g** |
 
-Để so sánh: đế gốc `sole_left.stl` là 6.25 cm³ ⇒ 7.75 g, nên **đế mới rộng hơn
-nhưng nhẹ hơn một nửa** vì nó là vỏ có gân, không phải khối đặc.
+Đế gốc `sole_left.stl` là 6.25 cm³ ⇒ 7.75 g, nên đế mới **rộng hơn và nặng hơn
+2.15 g**, vẫn dưới trần 1.3× mà tôi tự đặt (10.08 g).
 
 | Biến thể | Thêm mỗi chân | Tổng khối lượng robot |
 |---|---:|---:|
 | baseline (14 servo) | — | 737.2 g |
-| `direct` (trục roll tại trục pitch) | +25.9 g | 789.1 g |
-| `remote` (trục roll lệch vào 12 mm, servo trên cẳng chân, đòn 2:1) | +28.5 g | 794.2 g |
-| `remote_sole` (`remote` + đế mới) | +32.1 g | 801.5 g |
+| `direct` (trục roll tại trục pitch) | +27.6 g | 792.4 g |
+| `remote` (trục roll lệch vào 12 mm, servo trên cẳng chân, đòn 2:1) | +30.1 g | 797.4 g |
+| `remote_sole` (`remote` + đế mới) | +40.0 g | 817.3 g |
 
-Tức chi phí thật là **+7.7% khối lượng**, không phải con số 40 g/chân tôi ước ở E4.
+Tức chi phí thật là **+7.5% đến +10.9% khối lượng**.
 
 Vị trí giá servo roll **không phải tôi chọn bằng mắt**: nó là kết quả tìm kiếm trên
 100 phương án, lấy phương án đầu tiên **không sinh thêm bất kỳ va chạm nào** trong
 toàn dải khớp gốc (225 tư thế) — kết quả: lùi 12 mm, dọc theo cẳng chân 12 mm, vào
 trong 18 mm. Thanh đẩy dài **27–31 mm**, tính từ toạ độ thế giới ở tư thế `STAND`.
 
-## 2. Hai lỗi mô hình đã bắt được (và đó là lý do phải làm bước này)
+## 2. Ba lỗi mô hình đã bắt được (và đó là lý do phải làm bước này)
 
 1. **Lần đầu các chi tiết là khối đặc**: đế mới nặng 41.6 g, tổng robot 0.93 kg
    (+26%). Với khối lượng đó `remote` ngã 4/5 lần và bão hoà moment 37.9%. Sau khi
    làm đúng kiểu vỏ có gân: 3.65 g.
-2. **Thanh đẩy xuyên vào giá servo**. Ở `STAND`, model có 4 tiếp xúc âm
+2. **Chi tiết "nhẹ" hoá thành lồng rỗng.** Vòng sửa khối lượng ở trên đi quá xa:
+   đế thành **khung viền hở**, không có mặt đáy liền — không in ra được thành bàn
+   chân. Chỉ nhìn ảnh render mới thấy (và đó là lý do người dùng nói "không thấy gì
+   thay đổi": đế mới thậm chí chưa có geom `visual`, nên nó vô hình trong mọi ảnh).
+   Câu hỏi kèm theo là kết quả T1 có còn giá trị: **có** — MuJoCo va chạm mesh bằng
+   **bao lồi**, và bao lồi của khung hở đo được 2983 mm² so với 2977 mm² của đế đặc
+   dự kiến, nên vật lý luôn "thấy" một tấm đế liền. Đã sửa thành khay hở nắp: đáy
+   liền 1.5 mm + vách 1.5 mm + gân, 9.90 g.
+3. **Thanh đẩy xuyên vào giá servo**. Ở `STAND`, model có 4 tiếp xúc âm
    (−2.35 đến −5.89 mm) giữa `pushrod` và `cradle`/`servo`. Đầu rotuyn *phải* tựa
    lên horn — đó là khớp, không phải va chạm — nên MuJoCo mỗi bước lại giải một
    xuyên thấu vĩnh viễn: robot nghiêng 46°, bão hoà moment 100%, đi **giật lùi**.
    Đã khai báo `contact/exclude` cho các cặp lắp ghép và **thêm assert `ncon == 0`
    ở `STAND` và tư thế zero** vào generator để lỗi loại này không quay lại.
 
-Cả hai lỗi đều cho ra những bảng số "trông như kết quả thiết kế". Đây chính là thứ
+Cả ba lỗi đều cho ra những bảng số "trông như kết quả thiết kế". Đây chính là thứ
 mà mô hình khối đỏ ở E4b không thể phát hiện.
 
 ## 3. Giới hạn thật: biên roll dùng được, đo từng độ
@@ -99,12 +107,12 @@ lúc), không phải tư thế đi bộ; trong toàn dải khớp gốc là **0 
 
 | Chỉ số | baseline | `direct` | `remote` | `remote_sole` |
 |---|---:|---:|---:|---:|
-| T0 nghiêng khi đứng yên | 1.13° | 1.05° | 1.13° | 1.16° |
+| T0 nghiêng khi đứng yên | 1.13° | 1.05° | 1.13° | 1.15° |
 | T0 hai chân tiếp đất | 5/5 | 5/5 | 5/5 | 5/5 |
-| T1 chịu đẩy **ngang** | 0.598 m/s | 0.629 | 0.614 | **0.766 (+28%)** |
+| T1 chịu đẩy **ngang** | 0.598 m/s | 0.629 | 0.614 | **0.781 (+31%)** |
 | T1 chịu đẩy **trước-sau** | 0.263 m/s | 0.279 | 0.294 | **0.355 (+35%)** |
-| T2 dịch CoM khi đế còn phẳng | 2.6 mm | **40.7** | 10.2 | 18.4 |
-| T3 tốc độ đi với policy 14-action hôm nay | 0.163 m/s | 0.122 | 0.111 | 0.060 |
+| T2 dịch CoM khi đế còn phẳng | 2.6 mm | **40.6** | 10.2 | 18.2 |
+| T3 tốc độ đi với policy 14-action hôm nay | 0.163 m/s | 0.122 | 0.111 | 0.058 |
 | T3 số lần ngã | 0/5 | 0/5 | 0/5 | 0/5 |
 
 Đọc bảng này:
@@ -140,6 +148,11 @@ lúc), không phải tư thế đi bộ; trong toàn dải khớp gốc là **0 
   chi tiết in, backlash rotuyn, cọ dây hay sai số lắp ráp.
 - Thanh đẩy được mô hình bằng `gear=2` (đòn lý tưởng), không phải cơ cấu bốn khâu
   đầy đủ; ở góc roll lớn tỷ số truyền thật sẽ thay đổi chút ít.
+- **Bài test mặt sàn nghiêng không phân biệt được hai bản.** Tôi đã thử dựng ảnh
+  robot đứng trên sàn nghiêng ngang 10°: cả hai bản đều giữ thân gần như thẳng
+  (roll thân −0.007° so với −0.020°), vì `hip_roll` có ±0.384 rad nên **một mình
+  nó hấp thụ được độ nghiêng tĩnh**. Ankle roll chỉ khác biệt khi phải đặt đế phẳng
+  *trong lúc bước*, nên tôi đã bỏ ảnh đó thay vì để một hình dễ gây hiểu sai.
 - Với `gear=2`, `ctrlrange` mặc định của class ứng với dải mục tiêu ±5 rad, rộng
   hơn dải khớp ±0.785 rad rất nhiều. Không phải lỗi ở đây, nhưng **khi train thì
   phải đặt lại `ctrlrange`**, nếu không action scale sẽ lệch.
@@ -148,7 +161,14 @@ lúc), không phải tư thế đi bộ; trong toàn dải khớp gốc là **0 
 
 ## Ảnh
 
-Các chi tiết mới được tô **màu cam** để phân biệt với chi tiết gốc.
+Các chi tiết cơ khí mới được tô **màu cam** (đế mới giữ màu như đế gốc).
+
+- `docs/img/e5_compare_mechanism.png` — **ảnh nên xem đầu tiên**: cận cảnh cẳng
+  chân + mắt cá, baseline bên trái và bản mới bên phải, cùng góc; vỏ gốc được làm
+  mờ để thấy yoke, tay đòn, giá servo và thanh đẩy.
+- `docs/img/e5_compare_lean.png` — khung dịch CoM ngang lớn nhất khi hai đế còn
+  phẳng (2.6 mm so với 18.2 mm). Lưu ý: 18 mm là nhỏ trên ảnh, con số mới là bằng
+  chứng, ảnh chỉ để thấy đế mới rộng hơn và khớp roll có xoay.
 
 - `docs/img/scene_walk_e5_remote_left_mechanism_{side,front}_{stand,roll20}.png` —
   cận cảnh chân trái, ở `STAND` và ở `left_ankle_roll = +20°`. Yoke và tay đòn thấy
