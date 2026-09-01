@@ -24,7 +24,7 @@ và đóng khoảng cách mô hình* — để đẩy độ linh hoạt lên m�
 | Tốc độ tiến | 0.229 m/s | 0.40–0.45 m/s | ~0.83 m/s (ranh giới đi/chạy) |
 | Tốc độ ngang | 0.022 m/s | 0.10 m/s | ~0.15 m/s (bước ngang 40 mm ở 4 Hz, mục 3.4) |
 | Quay tại chỗ | 0.41 rad/s | 1.0 rad/s | không bị chặn bởi servo |
-| Chịu đẩy ngang | ngã ở ≥ 0.6 m/s | sống ở 0.6 m/s | ~0.33 m/s nếu giữ nhịp bước hiện tại |
+| Chịu đẩy ngang | ngã ở ≥ 0.6 m/s | sống ở 0.6 m/s | 0.23–0.33 m/s với phần cứng hiện tại |
 | Tần số bước | 1.70 Hz | 3–4 Hz | không bị chặn bởi servo |
 | Pha bay (flight) | 3% | 10–15% | có thật, không phải ảo tưởng |
 
@@ -41,7 +41,7 @@ Nghĩa là: **robot hiện đang chạy ở khoảng 27% trần vật lý của 
 | E1.5 | Đầu làm cơ quan giữ thăng bằng (mục 3.5) | Không (thiết kế + đo) | Đề xuất trong tài liệu này |
 | E2 | Bộ nhớ (GRU) — policy biết cơ thể mình đang ở đâu | Có | Chưa bắt đầu |
 | E3 | Delay-aware: policy biết lệnh của mình đến muộn | Có | Chưa bắt đầu |
-| E4 | Phần cứng: ankle roll / giảm khối lượng đầu | — | Chỉ phân tích |
+| E4 | Phần cứng: ankle roll / đế chân / khối lượng đầu | Không | **Xong** (`docs/e4-hardware-tradeoff.md`) |
 
 **Bạn không cần mua GPU.** Repo đã có sẵn đường chạy trên GPU thuê theo giờ của
 Hugging Face — chỉ cần thêm `--hf-jobs` vào đúng lệnh train (xem
@@ -153,8 +153,11 @@ Muốn cứu một cú đẩy ngang `Δv`, chân phải đặt ra ngoài một k
 cho bàn chân dịch ngang **+40 mm ra ngoài / −28 mm vào trong** so với tư thế
 đứng — và khi xoay hết ra ngoài, bàn chân *nâng lên 21 mm*, tức mất tiếp xúc.
 
-Vậy `Δv` tối đa cứu được bằng một bước ≈ `0.040 × 8.32 =` **0.33 m/s**, cộng
-thêm phần bàn chân hấp thụ được (1.53 m/s² trong khoảng thời gian một bước).
+Vậy `Δv` tối đa cứu được bằng một bước ≈ `0.040 × 8.32 =` **0.33 m/s** nếu tính
+lạc quan (dùng hết 40 mm), và **0.23 m/s** nếu trừ đi phần bàn chân bị nhấc lên
+nên không đặt xuống được — xem `scripts/hw_tradeoff.py` và
+`docs/e4-hardware-tradeoff.md`, nơi cùng con số này được tính lại cho từng
+phương án phần cứng.
 
 E0 đo: ngã ở mọi cú đẩy ≥ 0.6 m/s, sống ở mức thấp hơn. **Lý thuyết và số đo
 khớp nhau** — nên đây không phải lỗi huấn luyện, mà là trần động học.
@@ -166,7 +169,9 @@ Hai đường phá trần, và chỉ hai:
    1.70 Hz hiện tại. Đây chính là điều E1 nhắm tới khi bỏ cửa sổ air-time cố
    định — và giờ nó có một con số mục tiêu vật lý, không phải "cho nó linh hoạt hơn".
 2. **Phần cứng** (E4): ankle roll, bàn chân rộng hơn, hoặc hạ CoM. Mỗi 10 mm
-   nới thêm về ngang đổi được +0.083 m/s khả năng chịu đẩy.
+   nới thêm về ngang đổi được +0.083 m/s khả năng chịu đẩy. Bảng đầy đủ từng
+   phương án — kèm hai phương án *làm robot tệ hơn* — ở
+   `docs/e4-hardware-tradeoff.md`.
 
 ### 3.5 Phát hiện lớn nhất: cái đầu là một cơ quan giữ thăng bằng đang bị cấm dùng
 
